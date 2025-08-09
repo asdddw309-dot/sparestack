@@ -201,6 +201,25 @@ if controlSuccess then
     })
 end
 
+ Tabs.Automation:AddToggle("AutoPlayToggle", {
+        Title = "Auto Play",
+         Default = false,
+    Callback = function(state)
+	if state then
+	    Fluent:Notify({
+    Title = "In the making",
+    Content = "Im still working on this, sorry",
+    SubContent = "",
+    Duration = 10
+})
+	else
+	    print("-------")
+        end
+    end 
+})
+
+
+
 -- // Auto Guard Feature
 local TOGGLE_KEY = Enum.KeyCode.T
 local MIN_PREDICT = 3
