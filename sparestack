@@ -1,6 +1,23 @@
-local script_key = ''
-local SCRIPT_KEY = "paid"
-if script_key ~= SCRIPT_KEY then
+-- // Fetch the correct key from a GitHub-hosted file
+local function getCorrectKey()
+    local success, result = pcall(function()
+        return game:HttpGet("https://raw.githubusercontent.com/YourUsername/YourRepo/main/key.txt", true)
+    end)
+    if success and result then
+        return result:match("^%s*(.-)%s*$") -- Trim whitespace
+    else
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Key System Error",
+            Text = "Failed to fetch key from server",
+            Duration = 5
+        })
+        return nil
+    end
+end
+
+-- // Validate the key
+local SCRIPT_KEY = getCorrectKey()
+if not SCRIPT_KEY or script_key ~= SCRIPT_KEY then
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "Key System Error",
         Text = "Invalid key",
@@ -130,7 +147,7 @@ local loadTime = tick() - startTime
 Fluent:Notify({
     Title = "Spare Stack Loaded",
     Content = string.format("Script loaded in %.2f seconds", loadTime),
-    SubContent = "Last updated 10/12/1999" -- date placeholder
+    SubContent = "Last updated 10/12/1999", -- date placeholder
     Duration = 5
 })
 
