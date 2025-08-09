@@ -1,3 +1,4 @@
+local script_key = ''
 local SCRIPT_KEY = "paid"
 if script_key ~= SCRIPT_KEY then
     game:GetService("StarterGui"):SetCore("SendNotification", {
