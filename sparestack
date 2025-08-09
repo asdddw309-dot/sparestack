@@ -1,69 +1,31 @@
--- // External key variable (set before executing loadstring)
-local script_key = script_key or '' -- Fallback to empty string if not defined
-
--- // Fetch the correct key from a GitHub-hosted file
-local function getCorrectKey()
-    local success, result = pcall(function()
-        return game:HttpGet("https://raw.githubusercontent.com/asdddw309-dot/sparestack/refs/heads/main/key.txt", true)
-    end)
-    if success and result then
-        return result:match("^%s*(.-)%s*$") -- Trim whitespace
-    else
-        game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "Key System Error",
-            Text = "Failed to fetch key from server",
-            Duration = 5
-        })
-        return nil
-    end
-end
-
--- // Validate the key
-local SCRIPT_KEY = getCorrectKey()
-if not SCRIPT_KEY or script_key ~= SCRIPT_KEY then
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "Key System Error",
-        Text = "Invalid key",
-        Duration = 5
-    })
+local startTime = tick()
+local placeId = game.PlaceId
+local fluentUrl = placeId == 14386691987 and "https://raw.githubusercontent.com/discoart/FluentPlus/refs/heads/main/Beta.lua" or
+                  placeId == 17652855195 and "https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua" or nil
+if not fluentUrl then
+    game:GetService("StarterGui"):SetCore("SendNotification", {Title = "Unsupported Game", Text = "This script only supports PlaceIDs 14386691987 and 17652855195", Duration = 5})
     return
 end
 
--- // Measure load time
-local startTime = tick()
-
--- // Dependencies
-local Fluent = loadstring(game:HttpGet("https://raw.githubusercontent.com/discoart/FluentPlus/refs/heads/main/Beta.lua", true))()
+local Fluent = loadstring(game:HttpGet(fluentUrl, true))()
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
 local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 local Knit = require(game.ReplicatedStorage.Packages.Knit)
-
--- // Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local StarterGui = game:GetService("StarterGui")
-
--- // Variables
 local localPlayer = Players.LocalPlayer
-local ControlServiceRE
-local StartShoot
-local Shoot
-local AFKToggle
+local ControlServiceRE, StartShoot, Shoot, AFKToggle
+local sphereVisible = true
 
--- // Initialize ControlServiceRE with retries
 local function initializeControlServiceRE()
-    local maxAttempts = 5
-    local attemptDelay = 0.5
-    for i = 1, maxAttempts do
+    for i = 1, 5 do
         local success, controlResult = pcall(function()
             local controlService = ReplicatedStorage.Packages.Knit.Services.ControlService.RE
-            return {
-                StartShoot = controlService.StartShoot,
-                Shoot = controlService.Shoot
-            }
+            return {StartShoot = controlService.StartShoot, Shoot = controlService.Shoot}
         end)
         if success and controlResult then
             ControlServiceRE = ReplicatedStorage.Packages.Knit.Services.ControlService.RE
@@ -71,21 +33,14 @@ local function initializeControlServiceRE()
             Shoot = controlResult.Shoot
             return true
         end
-        task.wait(attemptDelay)
+        task.wait(0.5)
     end
-    Fluent:Notify({
-        Title = "Auto Green Error",
-        Content = "ControlService RemoteEvents not found after retries, skipping Auto Green feature.",
-        Duration = 5
-    })
+    Fluent:Notify({Title = "Auto Green Error", Content = "ControlService RemoteEvents not found after retries, skipping Auto Green feature.", Duration = 5})
     return false
 end
 
--- // Initialize AFKToggle with retries
 local function initializeAFKToggle()
-    local maxAttempts = 5
-    local attemptDelay = 0.5
-    for i = 1, maxAttempts do
+    for i = 1, 5 do
         local success, afkResult = pcall(function()
             return ReplicatedStorage.Packages.Knit.Services.PlayerService.RE.AFKToggle
         end)
@@ -93,40 +48,29 @@ local function initializeAFKToggle()
             AFKToggle = afkResult
             return true
         end
-        task.wait(attemptDelay)
+        task.wait(0.5)
     end
-    Fluent:Notify({
-        Title = "AFK Toggle Error",
-        Content = "AFKToggle RemoteEvent not found after retries, skipping AFK feature.",
-        Duration = 5
-    })
+    Fluent:Notify({Title = "AFK Toggle Error", Content = "AFKToggle RemoteEvent not found after retries, skipping AFK feature.", Duration = 5})
     return false
 end
 
--- // Initialize Knit with delay
 local function initializeKnit()
     local success, err = pcall(function()
         Knit.Start()
-        task.wait(1) -- Ensure services are ready
+        task.wait(1)
     end)
     if not success then
-        Fluent:Notify({
-            Title = "Knit Error",
-            Content = "Failed to initialize Knit: " .. tostring(err),
-            Duration = 5
-        })
+        Fluent:Notify({Title = "Knit Error", Content = "Failed to initialize Knit: " .. tostring(err), Duration = 5})
     end
 end
 
--- // Perform initialization
 initializeKnit()
 local controlSuccess = initializeControlServiceRE()
-local afkSuccess = initializeAFKToggle()
+local afkSuccess = placeId == 14386691987 and initializeAFKToggle() or false
 
--- // Fluent UI Setup
 local Window = Fluent:CreateWindow({
-    Title = "Spare Stack ",
-    SubTitle = " Premium | Beta Testing",
+    Title = "Spare Stack",
+    SubTitle = "Premium | Beta Testing",
     TabWidth = 160,
     Size = UDim2.fromOffset(580, 460),
     Acrylic = false,
@@ -135,47 +79,35 @@ local Window = Fluent:CreateWindow({
 })
 
 local Tabs = {
-    Home = Window:AddTab({ Title = "Home", Icon = "home" }),
-    Player = Window:AddTab({ Title = "Player", Icon = "user" }),
-    Visual = Window:AddTab({ Title = "Visual", Icon = "eye" }),
-    Automation = Window:AddTab({ Title = "Automation", Icon = "cpu" }),
-    Misc = Window:AddTab({ Title = "Misc", Icon = "more-horizontal" }),
-    Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
+    Home = Window:AddTab({Title = "Home", Icon = "home"}),
+    Player = Window:AddTab({Title = "Player", Icon = "user"}),
+    Visual = Window:AddTab({Title = "Visual", Icon = "eye"}),
+    Automation = Window:AddTab({Title = "Automation", Icon = "cpu"})
 }
 
+-- Add Misc tab before Settings if PlaceId is 14386691987
+if placeId == 14386691987 then
+    Tabs.Misc = Window:AddTab({Title = "Misc", Icon = "more-horizontal"})
+end
+
+-- Add Settings tab last
+Tabs.Settings = Window:AddTab({Title = "Settings", Icon = "settings"})
+
 local Options = Fluent.Options
-
--- // Load Time Notification
 local loadTime = tick() - startTime
-Fluent:Notify({
-    Title = "Spare Stack Loaded",
-    Content = string.format("Script loaded in %.2f seconds", loadTime),
-    SubContent = "Last updated 10/12/1999 - placeholder", -- date placeholder
-    Duration = 10
-})
-wait(0.5)
-Fluent:Notify({
-    Title = "Welcome Back,",
-    Content = "Premium user",
-    SubContent = "",
-    Duration = 10
-})
+Fluent:Notify({Title = "Spare Stack Loaded", Content = string.format("Script loaded in %.2f seconds", loadTime), Duration = 10})
+task.wait(0.5)
+Fluent:Notify({Title = "Welcome Back", Content = "Premium user", Duration = 10})
 
--- // Auto Green Feature
 if controlSuccess then
     local autoGreenEnabled = false
     local autoGreenMode = "Blatant"
 
     local function runShootingSequence()
         StartShoot:FireServer()
-        if autoGreenMode == "Legit" then
-            task.wait(0.5)
-            Shoot:FireServer(0.99)
-        else
-            task.wait(0.21)
-            Shoot:FireServer(1)
-        end
-        task.wait(0.20) -- wait before releasing
+        task.wait(autoGreenMode == "Legit" and 0.5 or 0.21)
+        Shoot:FireServer(autoGreenMode == "Legit" and 0.98 or 1)
+        task.wait(0.20)
         Shoot:FireServer(0)
     end
 
@@ -184,10 +116,7 @@ if controlSuccess then
         task.spawn(runShootingSequence)
     end)
 
-    Tabs.Home:AddToggle("AutoGreenToggle", {
-        Title = "Enable Auto Green (E key)",
-        Default = false
-    }):OnChanged(function(state)
+    Tabs.Home:AddToggle("AutoGreenToggle", {Title = "Enable Auto Green (E key)", Default = false}):OnChanged(function(state)
         autoGreenEnabled = state
     end)
 
@@ -201,26 +130,18 @@ if controlSuccess then
     })
 end
 
- Tabs.Automation:AddToggle("AutoPlayToggle", {
-        Title = "Auto Play",
-         Default = false,
+Tabs.Automation:AddToggle("AutoPlayToggle", {
+    Title = "Auto Play",
+    Default = false,
     Callback = function(state)
-	if state then
-	    Fluent:Notify({
-    Title = "In the making",
-    Content = "Im still working on this, sorry",
-    SubContent = "",
-    Duration = 10
-})
-	else
-	    print("-------")
+        if state then
+            Fluent:Notify({Title = "In the making", Content = "Im still working on this, sorry", Duration = 10})
+        else
+            print("-------")
         end
-    end 
+    end
 })
 
-
-
--- // Auto Guard Feature
 local TOGGLE_KEY = Enum.KeyCode.T
 local MIN_PREDICT = 3
 local MAX_PREDICT = 8
@@ -229,14 +150,15 @@ local autoGuardActive = false
 local predictionSphere
 local targetPlayer
 local lastToggleTime = 0
-local TOGGLE_DEBOUNCE = 0.1 -- Debounce time in seconds
-local predictionMultiplier = 0.2 -- Default: Medium
-local predictionMode = "Velocity-Based" -- Default
-local fixedDistance = 3 -- Default for Fixed Distance mode
-local sphereSize = 2 -- Default: Medium
-local sphereColor = Color3.new(1, 0, 0) -- Default: Red
-local lastSliderTime = 0
-local SLIDER_DEBOUNCE = 0.3 -- Debounce time for slider
+local TOGGLE_DEBOUNCE = 0.1
+local predictionMultiplier = 0.2
+local predictionMode = "Velocity-Based"
+local fixedDistance = 3
+local sphereSize = 2
+local sphereColor = Color3.new(1, 0, 0)
+local AUTO_SWITCH_DISTANCE = 5
+local NOTIFICATION_DEBOUNCE = 0.5
+local sliderNotifyTask
 
 local function createSphere()
     local sphere = Instance.new("Part")
@@ -247,18 +169,17 @@ local function createSphere()
     sphere.CanCollide = false
     sphere.Material = Enum.Material.ForceField
     sphere.Color = sphereColor
-    sphere.Transparency = 1
+    sphere.Transparency = sphereVisible and 0.3 or 1
     sphere.Parent = Workspace
     return sphere
 end
 
 local function fadeSphere(sphere, targetTransparency, duration)
-    if not sphere then return end
+    if not sphere or not sphereVisible then return end
     local success, err = pcall(function()
         local start = sphere.Transparency
         local elapsed = 0
-        local conn
-        conn = RunService.RenderStepped:Connect(function(dt)
+        local conn = RunService.RenderStepped:Connect(function(dt)
             if not sphere or not sphere.Parent then
                 conn:Disconnect()
                 return
@@ -272,11 +193,7 @@ local function fadeSphere(sphere, targetTransparency, duration)
         end)
     end)
     if not success then
-        StarterGui:SetCore("SendNotification", {
-            Title = "Auto Guard Error",
-            Text = "Failed to fade sphere: " .. tostring(err),
-            Duration = 5
-        })
+        StarterGui:SetCore("SendNotification", {Title = "Auto Guard Error", Text = "Failed to fade sphere: " .. tostring(err), Duration = 5})
     end
 end
 
@@ -284,8 +201,7 @@ local function getClosestPlayer()
     local character = localPlayer.Character
     local hrp = character and character:FindFirstChild("HumanoidRootPart")
     if not hrp then return nil end
-    local closest = nil
-    local closestDist = math.huge
+    local closest, closestDist = nil, math.huge
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= localPlayer then
             local char = player.Character
@@ -302,6 +218,28 @@ local function getClosestPlayer()
     return closest
 end
 
+local function checkForNewTarget()
+    if targetMode == "Stay Locked" or not predictionSphere then return targetPlayer end
+    local character = localPlayer.Character
+    local hrp = character and character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return targetPlayer end
+    local closest, closestDist = nil, math.huge
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= localPlayer and player ~= targetPlayer then
+            local char = player.Character
+            local targetHRP = char and char:FindFirstChild("HumanoidRootPart")
+            if targetHRP then
+                local dist = (predictionSphere.Position - targetHRP.Position).Magnitude
+                if dist < AUTO_SWITCH_DISTANCE and dist < closestDist then
+                    closest = player
+                    closestDist = dist
+                end
+            end
+        end
+    end
+    return closest or targetPlayer
+end
+
 local function toggleAutoGuard()
     if not autoGuardEnabled then return end
     local currentTime = tick()
@@ -310,19 +248,13 @@ local function toggleAutoGuard()
     autoGuardActive = not autoGuardActive
     local success, err = pcall(function()
         if autoGuardActive then
-            if not predictionSphere then
-                predictionSphere = createSphere()
-            end
-            fadeSphere(predictionSphere, 0.3, 0.3)
+            if not predictionSphere then predictionSphere = createSphere() end
+            if sphereVisible then fadeSphere(predictionSphere, 0.3, 0.3) end
             targetPlayer = getClosestPlayer()
-            StarterGui:SetCore("SendNotification", {
-                Title = "Auto Guard",
-                Text = "Enabled",
-                Duration = 3
-            })
+            StarterGui:SetCore("SendNotification", {Title = "Auto Guard", Text = "Enabled", Duration = 3})
         else
             if predictionSphere then
-                fadeSphere(predictionSphere, 1, 0.3)
+                if sphereVisible then fadeSphere(predictionSphere, 1, 0.3) end
                 task.delay(0.3, function()
                     if not autoGuardActive and predictionSphere then
                         predictionSphere:Destroy()
@@ -331,242 +263,62 @@ local function toggleAutoGuard()
                 end)
             end
             targetPlayer = nil
-            StarterGui:SetCore("SendNotification", {
-                Title = "Auto Guard",
-                Text = "Disabled",
-                Duration = 3
-            })
+            StarterGui:SetCore("SendNotification", {Title = "Auto Guard", Text = "Disabled", Duration = 3})
         end
     end)
     if not success then
-        StarterGui:SetCore("SendNotification", {
-            Title = "Auto Guard Error",
-            Text = "Toggle failed: " .. tostring(err),
-            Duration = 5
-        })
+        StarterGui:SetCore("SendNotification", {Title = "Auto Guard Error", Text = "Toggle failed: " .. tostring(err), Duration = 5})
     end
 end
 
 RunService.RenderStepped:Connect(function()
     if not autoGuardEnabled or not autoGuardActive then return end
     local success, err = pcall(function()
-        targetPlayer = getClosestPlayer()
+        targetPlayer = checkForNewTarget()
         if not targetPlayer then
-            if predictionSphere then
-                predictionSphere.Transparency = 1
-            end
+            if predictionSphere then predictionSphere.Transparency = sphereVisible and 0.3 or 1 end
             return
         end
         local targetHRP = targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart")
         if not targetHRP then
-            if predictionSphere then
-                predictionSphere.Transparency = 1
-            end
+            if predictionSphere then predictionSphere.Transparency = sphereVisible and 0.3 or 1 end
             return
         end
         local character = localPlayer.Character
         if not character then
-            if predictionSphere then
-                predictionSphere.Transparency = 1
-            end
+            if predictionSphere then predictionSphere.Transparency = sphereVisible and 0.3 or 1 end
             return
         end
         local humanoid = character:FindFirstChildOfClass("Humanoid")
         local hrp = character:FindFirstChild("HumanoidRootPart")
         if not humanoid or not hrp then
-            if predictionSphere then
-                predictionSphere.Transparency = 1
-            end
+            if predictionSphere then predictionSphere.Transparency = sphereVisible and 0.3 or 1 end
             return
         end
         local predictedPosition
-        if predictionMode == "Velocity-Based" then
-            local velocity = targetHRP.AssemblyLinearVelocity
-            local direction = velocity.Magnitude > 0 and velocity.Unit or targetHRP.CFrame.LookVector
+        local velocity = targetHRP.AssemblyLinearVelocity
+        local lookVector = targetHRP.CFrame.LookVector
+        local isMovingBackward = velocity.Magnitude > 0 and velocity.Unit:Dot(lookVector) < -0.5
+        if predictionMode == "Velocity-Based" and not isMovingBackward then
+            local direction = velocity.Magnitude > 0 and velocity.Unit or lookVector
             local predictionDistance = math.clamp(velocity.Magnitude * predictionMultiplier, MIN_PREDICT, MAX_PREDICT)
             predictedPosition = targetHRP.Position + direction * predictionDistance
         else
-            local direction = targetHRP.CFrame.LookVector
-            predictedPosition = targetHRP.Position + direction * fixedDistance
+            predictedPosition = targetHRP.Position + lookVector * fixedDistance
         end
         if predictionSphere then
             predictionSphere.Position = predictedPosition
             predictionSphere.Size = Vector3.new(sphereSize, sphereSize, sphereSize)
             predictionSphere.Color = sphereColor
-            predictionSphere.Transparency = 0.3
+            predictionSphere.Transparency = sphereVisible and 0.3 or 1
         end
         humanoid:MoveTo(predictedPosition)
     end)
     if not success then
-        StarterGui:SetCore("SendNotification", {
-            Title = "Auto Guard Error",
-            Text = "Update failed: " .. tostring(err),
-            Duration = 5
-        })
+        StarterGui:SetCore("SendNotification", {Title = "Auto Guard Error", Text = "Update failed: " .. tostring(err), Duration = 5})
     end
 end)
 
-Tabs.Player:AddToggle("AutoGuardToggle", {
-    Title = "Enable Auto Guard",
-    Default = false
-}):OnChanged(function(state)
-    autoGuardEnabled = state
-    if not state then
-        autoGuardActive = false
-        local success, err = pcall(function()
-            if predictionSphere then
-                fadeSphere(predictionSphere, 1, 0.3)
-                task.delay(0.3, function()
-                    if not autoGuardActive and predictionSphere then
-                        predictionSphere:Destroy()
-                        predictionSphere = nil
-                    end
-                end)
-            end
-            targetPlayer = nil
-        end)
-        StarterGui:SetCore("SendNotification", {
-            Title = "Auto Guard",
-            Text = "Disabled",
-            Duration = 3
-        })
-        if not success then
-            StarterGui:SetCore("SendNotification", {
-                Title = "Auto Guard Error",
-                Text = "Disable failed: " .. tostring(err),
-                Duration = 5
-            })
-        end
-    else
-        StarterGui:SetCore("SendNotification", {
-            Title = "Auto Guard",
-            Text = "Enabled",
-            Duration = 3
-        })
-    end
-end)
-
-Tabs.Player:AddKeybind("AutoGuardKeybind", {
-    Title = "Auto Guard Keybind",
-    Description = "Press a key to toggle Auto Guard",
-    Mode = "Toggle",
-    Default = "T",
-    Callback = function(value)
-        if autoGuardEnabled then
-            toggleAutoGuard()
-        end
-    end,
-    ChangedCallback = function(new)
-        TOGGLE_KEY = new
-        StarterGui:SetCore("SendNotification", {
-            Title = "Auto Guard Keybind",
-            Text = "Keybind set to " .. tostring(new),
-            Duration = 3
-        })
-    end
-})
-
-Tabs.Player:AddDropdown("PredictionMultiplierDropdown", {
-    Title = "Prediction Distance Multiplier",
-    Values = {"Low (0.1)", "Medium (0.2)", "High (0.4)"},
-    Default = 2,
-    Callback = function(value)
-        predictionMultiplier = value == "Low (0.1)" and 0.1 or value == "Medium (0.2)" and 0.2 or 0.4
-        StarterGui:SetCore("SendNotification", {
-            Title = "Auto Guard",
-            Text = "Prediction multiplier set to " .. value,
-            Duration = 3
-        })
-    end
-})
-
-Tabs.Player:AddDropdown("PredictionModeDropdown", {
-    Title = "Prediction Mode",
-    Values = {"Velocity-Based", "Fixed Distance"},
-    Default = 1,
-    Callback = function(value)
-        predictionMode = value
-        StarterGui:SetCore("SendNotification", {
-            Title = "Auto Guard",
-            Text = "Prediction mode set to " .. value,
-            Duration = 3
-        })
-    end
-})
-
-Tabs.Player:AddSlider("FixedDistanceSlider", {
-    Title = "Fixed Prediction Distance",
-    Description = "Distance (studs) for Fixed Distance mode",
-    Min = 1,
-    Max = 10,
-    Default = 3,
-    Rounding = 1
-}):OnChanged(function(value)
-    local currentTime = tick()
-    if currentTime - lastSliderTime < SLIDER_DEBOUNCE then return end
-    lastSliderTime = currentTime
-    fixedDistance = value
-    StarterGui:SetCore("SendNotification", {
-        Title = "Auto Guard",
-        Text = "Fixed prediction distance set to " .. value .. " studs",
-        Duration = 3
-    })
-end)
-
-Tabs.Player:AddDropdown("SphereSizeDropdown", {
-    Title = "Sphere Size",
-    Values = {"Small (1 stud)", "Medium (2 studs)", "Large (4 studs)"},
-    Default = 2,
-    Callback = function(value)
-        sphereSize = value == "Small (1 stud)" and 1 or value == "Medium (2 studs)" and 2 or 4
-        if predictionSphere then
-            predictionSphere.Size = Vector3.new(sphereSize, sphereSize, sphereSize)
-        end
-        StarterGui:SetCore("SendNotification", {
-            Title = "Auto Guard",
-            Text = "Sphere size set to " .. value,
-            Duration = 3
-        })
-    end
-})
-
-Tabs.Player:AddDropdown("SphereColorDropdown", {
-    Title = "Sphere Color",
-    Values = {"Red", "Green", "Blue", "Custom"},
-    Default = 1,
-    Callback = function(value)
-        if value == "Custom" then return end
-        sphereColor = value == "Red" and Color3.new(1, 0, 0) or value == "Green" and Color3.new(0, 1, 0) or Color3.new(0, 0, 1)
-        if predictionSphere then
-            predictionSphere.Color = sphereColor
-        end
-        StarterGui:SetCore("SendNotification", {
-            Title = "Auto Guard",
-            Text = "Sphere color set to " .. value,
-            Duration = 3
-        })
-    end
-})
-
-Tabs.Player:AddColorpicker("SphereColorPicker", {
-    Title = "Custom Sphere Color",
-    Default = Color3.new(1, 0, 0),
-    Callback = function(value)
-        if Options.SphereColorDropdown.Value == "Custom" then
-            sphereColor = value
-            if predictionSphere then
-                predictionSphere.Color = sphereColor
-            end
-            StarterGui:SetCore("SendNotification", {
-                Title = "Auto Guard",
-                Text = "Custom sphere color set",
-                Duration = 3
-            })
-        end
-    end
-})
-
--- // Walkspeed Feature
 local walkspeedEnabled = false
 local walkspeedValue = 16
 local moveConnection
@@ -574,13 +326,11 @@ local moveConnection
 local function updateWalkspeed()
     if moveConnection then moveConnection:Disconnect() end
     if not walkspeedEnabled then return end
-
     moveConnection = RunService.Heartbeat:Connect(function(dt)
         local character = localPlayer.Character
         local humanoidRootPart = character and character:FindFirstChild("HumanoidRootPart")
         local humanoid = character and character:FindFirstChildOfClass("Humanoid")
         if not (humanoidRootPart and humanoid) then return end
-
         local moveDirection = humanoid.MoveDirection
         if moveDirection.Magnitude > 0 then
             humanoidRootPart.CFrame += moveDirection.Unit * walkspeedValue * dt
@@ -588,25 +338,15 @@ local function updateWalkspeed()
     end)
 end
 
-Tabs.Player:AddToggle("WalkspeedToggle", {
-    Title = "Enable Walkspeed",
-    Default = false
-}):OnChanged(function(state)
+Tabs.Player:AddToggle("WalkspeedToggle", {Title = "Enable Walkspeed", Default = false}):OnChanged(function(state)
     walkspeedEnabled = state
     updateWalkspeed()
 end)
 
-Tabs.Player:AddSlider("WalkspeedSlider", {
-    Title = "Walkspeed Value",
-    Min = 1,
-    Max = 200,
-    Default = 16,
-    Rounding = 0
-}):OnChanged(function(value)
+Tabs.Player:AddSlider("WalkspeedSlider", {Title = "Walkspeed Value", Min = 1, Max = 200, Default = 16, Rounding = 0}):OnChanged(function(value)
     walkspeedValue = value
 end)
 
--- // Ball Magnets Feature (formerly Hitbox Expander)
 local hitboxEnabled = false
 local hitboxRadius = 10
 local hitboxConnection
@@ -620,11 +360,9 @@ end
 local function updateHitbox()
     if hitboxConnection then hitboxConnection:Disconnect() end
     if not hitboxEnabled then return end
-
     hitboxConnection = RunService.Heartbeat:Connect(function()
         local rootPart = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
         if not rootPart then return end
-
         for _, ball in ipairs(Workspace:GetChildren()) do
             if ball:IsA("BasePart") and ball.Name == "Basketball" then
                 if (ball.Position - rootPart.Position).Magnitude <= hitboxRadius then
@@ -635,127 +373,191 @@ local function updateHitbox()
     end)
 end
 
-Tabs.Player:AddToggle("BallMagnetsToggle", {
-    Title = "Enable Ball Magnets",
-    Default = false
-}):OnChanged(function(state)
+Tabs.Player:AddToggle("BallMagnetsToggle", {Title = "Enable Ball Magnets", Default = false}):OnChanged(function(state)
     hitboxEnabled = state
     updateHitbox()
 end)
 
-Tabs.Player:AddSlider("BallMagnetsSlider", {
-    Title = "Ball Magnets Radius",
-    Min = 1,
-    Max = 18,
-    Default = 10,
-    Rounding = 0
-}):OnChanged(function(value)
+Tabs.Player:AddSlider("BallMagnetsSlider", {Title = "Ball Magnets Radius", Min = 1, Max = 18, Default = 10, Rounding = 0}):OnChanged(function(value)
     hitboxRadius = value
 end)
 
--- // Noclip Feature
-local noclipEnabled = false
-local noclipConnection
-
-local function setCollisions(state)
-    local character = localPlayer.Character
-    if not character then return end
-    for _, part in ipairs(character:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.CanCollide = state
-        end
-    end
-end
-
-local function updateNoclip()
-    if noclipConnection then noclipConnection:Disconnect() end
-    if noclipEnabled then
-        noclipConnection = RunService.Stepped:Connect(function()
-            setCollisions(false)
+Tabs.Player:AddToggle("AutoGuardToggle", {Title = "Enable Auto Guard", Default = false}):OnChanged(function(state)
+    autoGuardEnabled = state
+    if not state then
+        autoGuardActive = false
+        local success, err = pcall(function()
+            if predictionSphere then
+                if sphereVisible then fadeSphere(predictionSphere, 1, 0.3) end
+                task.delay(0.3, function()
+                    if not autoGuardActive and predictionSphere then
+                        predictionSphere:Destroy()
+                        predictionSphere = nil
+                    end
+                end)
+            end
+            targetPlayer = nil
         end)
+        StarterGui:SetCore("SendNotification", {Title = "Auto Guard", Text = "Disabled", Duration = 3})
+        if not success then
+            StarterGui:SetCore("SendNotification", {Title = "Auto Guard Error", Text = "Disable failed: " .. tostring(err), Duration = 5})
+        end
     else
-        setCollisions(true)
+        StarterGui:SetCore("SendNotification", {Title = "Auto Guard", Text = "Enabled", Duration = 3})
     end
-end
-
-Tabs.Player:AddToggle("NoclipToggle", {
-    Title = "Enable Noclip",
-    Default = false
-}):OnChanged(function(state)
-    noclipEnabled = state
-    updateNoclip()
 end)
 
--- // AFK Toggle Feature
+Tabs.Player:AddKeybind("AutoGuardKeybind", {
+    Title = "Auto Guard Keybind",
+    Description = "Press a key to toggle Auto Guard",
+    Mode = "Toggle",
+    Default = "T",
+    Callback = function(value)
+        if autoGuardEnabled then toggleAutoGuard() end
+    end,
+    ChangedCallback = function(new)
+        TOGGLE_KEY = new
+        StarterGui:SetCore("SendNotification", {Title = "Auto Guard Keybind", Text = "Keybind set to " .. tostring(new), Duration = 3})
+    end
+})
+
+Tabs.Player:AddDropdown("TargetModeDropdown", {
+    Title = "Auto Guard Target Mode",
+    Values = {"Stay Locked", "Auto Switch"},
+    Default = 1,
+    Callback = function(value)
+        targetMode = value
+        StarterGui:SetCore("SendNotification", {Title = "Auto Guard", Text = "Target mode set to " .. value, Duration = 3})
+    end
+})
+
+Tabs.Player:AddDropdown("PredictionMultiplierDropdown", {
+    Title = "Prediction Distance Multiplier",
+    Description = "This is for Velocity-Based mode",
+    Values = {"Low (0.1)", "Medium (0.2)", "High (0.4)"},
+    Default = 2,
+    Callback = function(value)
+        predictionMultiplier = value == "Low (0.1)" and 0.1 or value == "Medium (0.2)" and 0.2 or 0.4
+        StarterGui:SetCore("SendNotification", {Title = "Auto Guard", Text = "Prediction multiplier set to " .. value, Duration = 3})
+    end
+})
+
+Tabs.Player:AddDropdown("PredictionModeDropdown", {
+    Title = "Prediction Mode",
+    Values = {"Velocity-Based", "Fixed Distance"},
+    Default = 1,
+    Callback = function(value)
+        predictionMode = value
+        StarterGui:SetCore("SendNotification", {Title = "Auto Guard", Text = "Prediction mode set to " .. value, Duration = 3})
+    end
+})
+
+Tabs.Player:AddSlider("FixedDistanceSlider", {
+    Title = "Fixed Prediction Distance",
+    Description = "Distance (studs) for Fixed Distance mode",
+    Min = 1,
+    Max = 10,
+    Default = 3,
+    Rounding = 1
+}):OnChanged(function(value)
+    fixedDistance = value
+    if sliderNotifyTask then task.cancel(sliderNotifyTask) end
+    sliderNotifyTask = task.delay(NOTIFICATION_DEBOUNCE, function()
+        StarterGui:SetCore("SendNotification", {Title = "Auto Guard", Text = "Fixed prediction distance set to " .. value .. " studs", Duration = 3})
+        sliderNotifyTask = nil
+    end)
+end)
+
+Tabs.Player:AddDropdown("SphereSizeDropdown", {
+    Title = "Sphere Size",
+    Values = {"Small (1 stud)", "Medium (2 studs)", "Large (4 studs)"},
+    Default = 2,
+    Callback = function(value)
+        sphereSize = value == "Small (1 stud)" and 1 or value == "Medium (2 studs)" and 2 or 4
+        if predictionSphere then predictionSphere.Size = Vector3.new(sphereSize, sphereSize, sphereSize) end
+        StarterGui:SetCore("SendNotification", {Title = "Auto Guard", Text = "Sphere size set to " .. value, Duration = 3})
+    end
+})
+
+Tabs.Player:AddDropdown("SphereColorDropdown", {
+    Title = "Sphere Color",
+    Values = {"Red", "Green", "Blue", "Custom"},
+    Default = 1,
+    Callback = function(value)
+        if value == "Custom" then return end
+        sphereColor = value == "Red" and Color3.new(1, 0, 0) or value == "Green" and Color3.new(0, 1, 0) or Color3.new(0, 0, 1)
+        if predictionSphere then predictionSphere.Color = sphereColor end
+        StarterGui:SetCore("SendNotification", {Title = "Auto Guard", Text = "Sphere color set to " .. value, Duration = 3})
+    end
+})
+
+Tabs.Player:AddColorpicker("SphereColorPicker", {
+    Title = "Custom Sphere Color",
+    Default = Color3.new(1, 0, 0),
+    Callback = function(value)
+        if Options.SphereColorDropdown.Value == "Custom" then
+            sphereColor = value
+            if predictionSphere then predictionSphere.Color = sphereColor end
+            StarterGui:SetCore("SendNotification", {Title = "Auto Guard", Text = "Custom sphere color set", Duration = 3})
+        end
+    end
+})
+
+Tabs.Visual:AddToggle("SphereVisibilityToggle", {Title = "Show Prediction Sphere", Default = true}):OnChanged(function(state)
+    sphereVisible = state
+    if predictionSphere then predictionSphere.Transparency = sphereVisible and 0.3 or 1 end
+    StarterGui:SetCore("SendNotification", {Title = "Auto Guard", Text = "Prediction sphere " .. (state and "visible" or "hidden"), Duration = 3})
+end)
+
 if afkSuccess then
     Tabs.Misc:AddButton({
         Title = "Toggle AFK",
         Callback = function()
             AFKToggle:FireServer(true)
-            StarterGui:SetCore("SendNotification", {
-                Title = "AFK Toggle",
-                Text = "AFK status toggled",
-                Duration = 3
-            })
+            StarterGui:SetCore("SendNotification", {Title = "AFK Toggle", Text = "AFK status toggled", Duration = 3})
         end
     })
 end
 
--- // Unlock Zoom Feature
-Tabs.Misc:AddButton({
-    Title = "Unlock Zoom",
-    Callback = function()
-        localPlayer.CameraMaxZoomDistance = 1000
-        StarterGui:SetCore("SendNotification", {
-            Title = "Unlock Zoom",
-            Text = "Zoom unlocked",
-            Duration = 3
-        })
-    end
-})
+if placeId == 14386691987 then
+    Tabs.Misc:AddButton({
+        Title = "Unlock Zoom",
+        Callback = function()
+            localPlayer.CameraMaxZoomDistance = 1000
+            StarterGui:SetCore("SendNotification", {Title = "Unlock Zoom", Text = "Zoom unlocked", Duration = 3})
+        end
+    })
 
--- // Show Records Feature
-Tabs.Misc:AddButton({
-    Title = "Show Records",
-    Callback = function()
-        for _, character in ipairs(Workspace:GetChildren()) do
-            if character:IsA("Model") and Players:GetPlayerFromCharacter(character) then
-                local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-                if humanoidRootPart then
-                    local infoGui = humanoidRootPart:FindFirstChild("Info")
-                    if infoGui and infoGui:IsA("BillboardGui") then
-                        infoGui.Enabled = true
-                        for _, item in ipairs(infoGui:GetChildren()) do
-                            if item:IsA("Frame") then
-                                item.Visible = true
+    Tabs.Misc:AddButton({
+        Title = "Show Records",
+        Callback = function()
+            for _, character in ipairs(Workspace:GetChildren()) do
+                if character:IsA("Model") and Players:GetPlayerFromCharacter(character) then
+                    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+                    if humanoidRootPart then
+                        local infoGui = humanoidRootPart:FindFirstChild("Info")
+                        if infoGui and infoGui:IsA("BillboardGui") then
+                            infoGui.Enabled = true
+                            for _, item in ipairs(infoGui:GetChildren()) do
+                                if item:IsA("Frame") then item.Visible = true end
                             end
                         end
                     end
                 end
             end
+            StarterGui:SetCore("SendNotification", {Title = "Show Records", Text = "Player records made visible", Duration = 3})
         end
-        StarterGui:SetCore("SendNotification", {
-            Title = "Show Records",
-            Text = "Player records made visible",
-            Duration = 3
-        })
-    end
-})
+    })
 
--- // Rank Bypass Feature
-Tabs.Misc:AddButton({
-    Title = "Rank Bypass",
-    Callback = function()
-        Knit.GetService("PlayerService").Teleport:Fire("Ranked")
-        StarterGui:SetCore("SendNotification", {
-            Title = "Rank Bypass",
-            Text = "Teleport to Ranked initiated",
-            Duration = 3
-        })
-    end
-})
+    Tabs.Misc:AddButton({
+        Title = "Rank Bypass",
+        Callback = function()
+            Knit.GetService("PlayerService").Teleport:Fire("Ranked")
+            StarterGui:SetCore("SendNotification", {Title = "Rank Bypass", Text = "Teleport to Ranked initiated", Duration = 3})
+        end
+    })
+end
 
--- // Initialize SaveManager and InterfaceManager
 SaveManager:SetLibrary(Fluent)
 InterfaceManager:SetLibrary(Fluent)
 SaveManager:BuildConfigSection(Tabs.Settings)
