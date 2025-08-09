@@ -20,7 +20,21 @@ local localPlayer = Players.LocalPlayer
 local ControlServiceRE = ReplicatedStorage.Packages.Knit.Services.ControlService.RE
 local StartShoot = ControlServiceRE.StartShoot
 local Shoot = ControlServiceRE.Shoot
-local AFKToggle = ReplicatedStorage.Packages.Knit.Services.PlayerService.RE.AFKToggle
+local AFKToggle
+
+-- // Safely initialize AFKToggle
+local success, result = pcall(function()
+    return ReplicatedStorage.Packages.Knit.Services.PlayerService.RE.AFKToggle
+end)
+if success and result then
+    AFKToggle = result
+else
+    Fluent:Notify({
+        Title = "AFK Toggle Error",
+        Content = "AFKToggle RemoteEvent not found, skipping AFK feature.",
+        Duration = 5
+    })
+end
 
 -- // Initialize Knit
 Knit.Start()
@@ -93,7 +107,9 @@ Tabs.Home:AddDropdown("AutoGreenModeDropdown", {
 })
 
 -- // Auto Guard Feature
-local autoGuardUIEnabled = false
+local autoGuardUI
+
+Enabled = false
 local autoGuardActive = false
 local currentTarget = nil
 local offsetDistance = 4
@@ -313,12 +329,20 @@ end)
 Tabs.Misc:AddButton({
     Title = "Toggle AFK",
     Callback = function()
-        AFKToggle:FireServer(true)
-        StarterGui:SetCore("SendNotification", {
-            Title = "AFK Toggle",
-            Text = "AFK status toggled",
-            Duration = 3
-        })
+        if AFKToggle then
+            AFKToggle:FireServer(true)
+            StarterGui:SetCore("SendNotification", {
+                Title = "AFK Toggle",
+                Text = "AFK status toggled",
+                Duration = 3
+            })
+        else
+            StarterGui:SetCore("SendNotification", {
+                Title = "AFK Toggle Error",
+                Text = "AFK feature not available in this mode",
+                Duration = 3
+            })
+        end
     end
 })
 
