@@ -4,7 +4,7 @@ local script_key = script_key or 'paid' -- Fallback to empty string if not defin
 -- // Fetch the correct key from a GitHub-hosted file
 local function getCorrectKey()
     local success, result = pcall(function()
-        return game:HttpGet("https://raw.githubusercontent.com/YourUsername/YourRepo/main/key.txt", true)
+        return game:HttpGet("https://raw.githubusercontent.com/asdddw309-dot/sparestack/refs/heads/main/sparestack", true)
     end)
     if success and result then
         return result:match("^%s*(.-)%s*$") -- Trim whitespace
