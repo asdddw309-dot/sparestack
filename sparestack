@@ -5,6 +5,7 @@ local startTime = tick()
 local Fluent = loadstring(game:HttpGet("https://raw.githubusercontent.com/discoart/FluentPlus/refs/heads/main/Beta.lua", true))()
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
 local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
+local Knit = require(game.ReplicatedStorage.Packages.Knit)
 
 -- // Services
 local Players = game:GetService("Players")
@@ -21,6 +22,9 @@ local StartShoot = ControlServiceRE.StartShoot
 local Shoot = ControlServiceRE.Shoot
 local AFKToggle = ReplicatedStorage.Packages.Knit.Services.PlayerService.RE.AFKToggle
 
+-- // Initialize Knit
+Knit.Start()
+
 -- // Fluent UI Setup
 local Window = Fluent:CreateWindow({
     Title = "Spare Stack - Fluent",
@@ -35,7 +39,6 @@ local Window = Fluent:CreateWindow({
 local Tabs = {
     Home = Window:AddTab({ Title = "Home", Icon = "home" }),
     Player = Window:AddTab({ Title = "Player", Icon = "user" }),
-	Visuals = Window:AddTab({ Title = "Visuals", Icon = "user" }),
     AntiExploiter = Window:AddTab({ Title = "Anti-Exploiter", Icon = "shield-alert" }),
     Misc = Window:AddTab({ Title = "Misc", Icon = "more-horizontal" }),
     Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
@@ -355,6 +358,19 @@ Tabs.Misc:AddButton({
         StarterGui:SetCore("SendNotification", {
             Title = "Show Records",
             Text = "Player records made visible",
+            Duration = 3
+        })
+    end
+})
+
+-- // Rank Bypass Feature
+Tabs.Misc:AddButton({
+    Title = "Rank Bypass",
+    Callback = function()
+        Knit.GetService("PlayerService").Teleport:Fire("Ranked")
+        StarterGui:SetCore("SendNotification", {
+            Title = "Rank Bypass",
+            Text = "Teleport to Ranked initiated",
             Duration = 3
         })
     end
