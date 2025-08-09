@@ -125,8 +125,8 @@ local afkSuccess = initializeAFKToggle()
 
 -- // Fluent UI Setup
 local Window = Fluent:CreateWindow({
-    Title = "Spare Stack | Premium",
-    SubTitle = "Beta Testing",
+    Title = "Spare Stack ",
+    SubTitle = " Premium | Beta Testing",
     TabWidth = 160,
     Size = UDim2.fromOffset(580, 460),
     Acrylic = false,
