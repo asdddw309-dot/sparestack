@@ -138,7 +138,7 @@ local Tabs = {
     Home = Window:AddTab({ Title = "Home", Icon = "home" }),
     Player = Window:AddTab({ Title = "Player", Icon = "user" }),
     Visual = Window:AddTab({ Title = "Visual", Icon = "eye" }),
-    AntiExploiter = Window:AddTab({ Title = "Anti-Exploiter", Icon = "shield-alert" }),
+    Automation = Window:AddTab({ Title = "Automation", Icon = "cpu" }),
     Misc = Window:AddTab({ Title = "Misc", Icon = "more-horizontal" }),
     Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
 }
@@ -151,7 +151,14 @@ Fluent:Notify({
     Title = "Spare Stack Loaded",
     Content = string.format("Script loaded in %.2f seconds", loadTime),
     SubContent = "Last updated 10/12/1999 - placeholder", -- date placeholder
-    Duration = 5
+    Duration = 10
+})
+wait(0.5)
+Fluent:Notify({
+    Title = "Welcome Back,",
+    Content = "Premium user",
+    SubContent = "",
+    Duration = 10
 })
 
 -- // Auto Green Feature
